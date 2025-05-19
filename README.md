@@ -2,7 +2,23 @@
   <img src="docs/pt-br/assets/biomove_logo.jpeg" width="200" alt="Biomove Logo"/>
 </p>
 
+
 <h1 align="center">🧠 SISTEMA EMG – BIOMOVE</h1>
+
+<p align="center">
+  <img alt="Status do Projeto" src="https://img.shields.io/badge/vers%C3%A3o-1.0.0-blue?style=for-the-badge">
+  <img alt="Licença MIT" src="https://img.shields.io/badge/licença-MIT-green?style=for-the-badge">
+  <img alt="Documentação" src="https://img.shields.io/badge/wiki-disponível-lightgrey?style=for-the-badge">
+  <img alt="Status" src="https://img.shields.io/badge/deploy-GitHub%20Pages-success?style=for-the-badge">
+</p>
+
+<p align="center">
+  <img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/KallebyX/SISTEMA_EMG/gh-pages.yml?branch=main&label=build&style=for-the-badge">
+  <img alt="Último commit" src="https://img.shields.io/github/last-commit/KallebyX/SISTEMA_EMG?style=for-the-badge">
+  <img alt="Contribuições" src="https://img.shields.io/github/contributors/KallebyX/SISTEMA_EMG?style=for-the-badge">
+  <img alt="Estrelas do GitHub" src="https://img.shields.io/github/stars/KallebyX/SISTEMA_EMG?style=for-the-badge">
+  <img alt="Testes Automatizados" src="https://img.shields.io/badge/testes-automatizados-blueviolet?style=for-the-badge">
+</p>
 
 <p align="center"><strong>Controle inteligente de próteses mioelétricas com IA e sinais EMG</strong></p>
 
