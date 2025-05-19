@@ -114,6 +114,13 @@ python prosthesis_controller.py --port /dev/ttyACM0 --model modelos_treinados/sv
 
 ---
 
+## 📄 Termos Legais
+
+- [📘 Termos de Uso](TERMS_OF_USE.md)
+- [🔐 Política de Privacidade](PRIVACY_POLICY.md)
+
+---
+
 ## 🧾 Licença
 
 Este projeto é distribuído sob a licença MIT.  
@@ -124,7 +131,16 @@ Este projeto é distribuído sob a licença MIT.
 ## 📬 Contato
 
 - Desenvolvedor principal: [Kalleby Evangelho Mota](mailto:kallebyevangelho03@gmail.com)
+- Empresa: ORYUM TECH (CNPJ: 49.549.704/0001-07)
 - Instagram: [@kallebyevangelho](https://instagram.com/kallebyevangelho)
 - Repositório oficial: [github.com/KallebyX/SISTEMA_EMG](https://github.com/KallebyX/SISTEMA_EMG)
+
+---
+
+## 🌍 Conheça a Startup Biomove
+
+Acesse a [Landing Page Oficial da Biomove](https://kallebyx.github.io/Biomove) para explorar nossa missão, produtos e visão de impacto social com tecnologia assistiva.
+
+Descubra como a Biomove está democratizando o acesso a soluções inteligentes como o Sistema EMG e ampliando o futuro da inclusão por meio da inovação.
 
 ---
