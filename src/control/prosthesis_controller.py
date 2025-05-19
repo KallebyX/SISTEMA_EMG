@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 """
 Biomove - Sistema de Controle da Prótese
 =======================================
@@ -17,7 +20,7 @@ import numpy as np
 import time
 import os
 import json
-import pickle
+from joblib import load
 import threading
 import argparse
 from collections import deque
@@ -26,7 +29,7 @@ from scipy import signal
 
 class ProsthesisController:
     def __init__(self, port='/dev/ttyACM0', baud_rate=115200, model_path=None, 
-                 model_type='svm', threshold=0.7, window_size=100, safety_timeout=2.0):
+                 model_type='svm', threshold=0.7, window_size=100, safety_timeout=2.0, simulate=False):
         """
         Inicializa o controlador da prótese.
         
@@ -46,6 +49,7 @@ class ProsthesisController:
         self.threshold = threshold
         self.window_size = window_size
         self.safety_timeout = safety_timeout
+        self.simulate = simulate
         
         # Buffers e estado
         self.data_buffer = deque(maxlen=window_size)
@@ -54,9 +58,15 @@ class ProsthesisController:
         self.is_active = False
         self.calibration_values = {}
         self.user_profile = {}
-        
-        # Configuração dos filtros
+
+        # Configuração dos filtros (sempre, inclusive em simulação)
         self.configure_filters()
+
+        if self.simulate:
+            print("⚙️  Modo SIMULAÇÃO ativado. Nenhuma configuração de hardware será feita.")
+            self.ser = None
+            self.load_model()
+            return
         
         # Carrega o modelo
         self.load_model()
@@ -73,26 +83,28 @@ class ProsthesisController:
     def configure_filters(self):
         """Configura os filtros digitais para processamento do sinal EMG."""
         sample_rate = 500  # Taxa de amostragem em Hz
-        
+
         # Filtro Notch (rejeita-faixa) para remover ruído da rede elétrica
         notch_b, notch_a = signal.iirnotch(
             w0=60/(sample_rate/2),  # 60Hz (frequência da rede elétrica)
             Q=30.0
         )
         self.notch_filter = (notch_b, notch_a)
-        
+
         # Filtro passa-alta para remover offset DC e artefatos de movimento
         highpass_b, highpass_a = signal.butter(
-            N=4, 
+            N=4,
             Wn=20/(sample_rate/2),  # 20Hz
             btype='highpass'
         )
         self.highpass_filter = (highpass_b, highpass_a)
-        
+
         # Filtro passa-baixa para suavizar o sinal
+        # Garante Wn < 1 para evitar erro "ValueError: Digital filter critical frequencies must be 0 < Wn < 1"
+        lowpass_cutoff = min(200, sample_rate / 2 - 1)  # Garante Wn < 1
         lowpass_b, lowpass_a = signal.butter(
-            N=4, 
-            Wn=450/(sample_rate/2),  # 450Hz
+            N=4,
+            Wn=lowpass_cutoff / (sample_rate / 2),
             btype='lowpass'
         )
         self.lowpass_filter = (lowpass_b, lowpass_a)
@@ -142,14 +154,12 @@ class ProsthesisController:
                 
             else:
                 # Carrega modelo scikit-learn
-                with open(self.model_path, 'rb') as f:
-                    self.model = pickle.load(f)
+                self.model = load(self.model_path)
                 
                 # Carrega scaler
                 scaler_path = self.model_path.replace('_model_', '_scaler_')
                 if os.path.exists(scaler_path):
-                    with open(scaler_path, 'rb') as f:
-                        self.scaler = pickle.load(f)
+                    self.scaler = load(scaler_path)
                 else:
                     print("Arquivo de scaler não encontrado. Usando normalização padrão.")
                     self.scaler = None
@@ -440,41 +450,80 @@ class ProsthesisController:
     def run(self):
         """Executa o loop principal do controlador."""
         print("Iniciando controlador da prótese...")
-        
+        if self.simulate:
+            print("🔁 Executando loop em MODO SIMULADO com gráfico ao vivo...")
+
+            signal_data = []
+
+            fig, ax = plt.subplots()
+            line, = ax.plot([], [], lw=2)
+            text_pred = ax.text(0.02, 0.95, '', transform=ax.transAxes)
+
+            def init():
+                ax.set_xlim(0, 100)
+                ax.set_ylim(0, 150)
+                return line, text_pred
+
+            def update(frame):
+                fake_value = np.random.randint(10, 100)
+                self.data_buffer.append(fake_value)
+                signal_data.append(fake_value)
+                if len(signal_data) > 100:
+                    signal_data.pop(0)
+                line.set_data(range(len(signal_data)), signal_data)
+
+                if len(self.data_buffer) >= self.window_size:
+                    movement, confidence = self.predict_movement()
+                    text_pred.set_text(f'Movimento: {movement}\nConfiança: {confidence:.2f}')
+                    text_pred.set_color("red")
+                    text_pred.set_fontsize(12)
+                    print(f"[SIMULADO] Previsão → {movement}  | Confiança: {confidence:.2f}")
+
+                return line, text_pred
+
+            ani = FuncAnimation(fig, update, init_func=init, blit=True, interval=200, cache_frame_data=False)
+            plt.title("Sinal EMG Simulado e Predição de Movimento")
+            plt.xlabel("Tempo")
+            plt.ylabel("Amplitude")
+            plt.tight_layout()
+            plt.show()
+            return
+
         # Inicia thread de calibração adaptativa
         adaptive_thread = threading.Thread(target=self.adaptive_calibration, daemon=True)
         adaptive_thread.start()
-        
+
         try:
             while True:
                 # Lê dados do sensor
                 data = self.read_serial_data()
                 if data:
                     raw_value, smoothed_value, baseline, threshold = data
-                    
+
                     # Adiciona ao buffer
                     self.data_buffer.append(smoothed_value)
-                    
+
                     # Prediz movimento se o buffer estiver cheio
                     if len(self.data_buffer) >= self.window_size:
                         movement, confidence = self.predict_movement()
-                        
+
                         # Envia comando para o motor
                         self.send_motor_command(movement, confidence)
-                        
+
                         # Atualiza movimento atual
                         self.current_movement = movement
-                
+
                 # Pequena pausa para não sobrecarregar a CPU
                 time.sleep(0.001)
-                
+
         except KeyboardInterrupt:
             print("\nPrograma interrompido pelo usuário")
         finally:
             # Garante que o motor seja desligado ao sair
             self.send_command("MOTOR_STOP")
-            self.ser.close()
-            print("Conexão serial fechada")
+            if self.ser is not None:
+                self.ser.close()
+                print("Conexão serial fechada")
 
 
 def main():
