@@ -1,0 +1,93 @@
+site_name: SISTEMA EMG – Biomove
+site_author: Kalleby Evangelho Mota
+repo_url: https://github.com/KallebyX/SISTEMA_EMG
+
+theme:
+  name: material
+  logo: images/biomove_logo.jpeg
+  favicon: images/biomove_logo.jpeg
+  palette:
+    scheme: default
+    primary: teal
+    accent: light green
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.action.edit
+    - content.code.copy
+    - content.tabs.link
+    - content.tooltips
+    - header.autohide
+    - navigation.instant
+
+nav:
+  - Home: index.md
+  - Português:
+      - Início: pt-br/index.md
+      - Motivação: pt-br/motivacao.md
+      - Arquitetura: pt-br/arquitetura.md
+      - Aquisição de Sinais: pt-br/aquisicao_sinais.md
+      - Machine Learning: pt-br/machine_learning.md
+      - Classificação em Tempo Real: pt-br/tempo_real.md
+      - Execução Local: pt-br/execucao_local.md
+      - Roadmap: pt-br/roadmap.md
+      - Validação Científica: pt-br/validacao_cientifica.md
+      - Créditos e Licença: pt-br/creditos_licenca.md
+      - 📄 PDF Institucional: pt-br/assets/sistema_emg_documentacao_final.pdf
+      - 📘 Biomove Institucional: pt-br/assets/biomove_documentacao_institucional.pdf
+  - English:
+      - Home: en/index.md
+      - Motivation: en/motivacao.md
+      - Architecture: en/arquitetura.md
+      - Signal Acquisition: en/aquisicao_sinais.md
+      - Machine Learning: en/machine_learning.md
+      - Real-Time Classification: en/tempo_real.md
+      - Local Execution: en/execucao_local.md
+      - Roadmap: en/roadmap.md
+      - Scientific Validation: en/validacao_cientifica.md
+      - Credits and License: en/creditos_licenca.md
+      - 📄 Institutional PDF: pt-br/assets/sistema_emg_documentacao_final.pdf
+      - 📘 Biomove Full PDF (EN): pt-br/assets/biomove_documentacao_institucional.pdf
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/KallebyX
+    - icon: fontawesome/brands/instagram
+      link: https://instagram.com/kallebyevangelho
+    - icon: fontawesome/solid/envelope
+      link: mailto:kallebyevangelho03@gmail.com
+  alternate:
+    - name: Português
+      link: /pt-br/
+      lang: pt
+    - name: English
+      link: /en/
+      lang: en
+  generator: false
+  copyright: |
+    © 2025 Biomove. Todos os direitos reservados.
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - codehilite
+  - footnotes
+  - tables
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.tabbed
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+plugins:
+  - search
+  #- pdf-export

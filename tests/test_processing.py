@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
 Testes unitários para o módulo de processamento de sinais.
 
@@ -245,3 +246,6 @@ class TestWindowing(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+=======
+def test_dummy(): assert True
+>>>>>>> 73d7e1ae3c72454d97037d2fdbe4fcc591acd5d4

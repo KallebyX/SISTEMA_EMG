@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SISTEMA_EMG
 
 ![Banner do SISTEMA_EMG](docs/images/banner.png)
@@ -184,6 +185,8 @@ Este projeto está licenciado sob a licença MIT - veja o arquivo LICENSE para d
 Para questões, sugestões ou colaborações, entre em contato através de:
 - Email: seu-email@exemplo.com
 - GitHub: [seu-usuario](https://github.com/seu-usuario)
+=======
+>>>>>>> 73d7e1ae3c72454d97037d2fdbe4fcc591acd5d4
 <p align="center">
   <img src="docs/pt-br/assets/biomove_logo.jpeg" width="200" alt="Biomove Logo"/>
 </p>
