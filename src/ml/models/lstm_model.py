@@ -1,0 +1,283 @@
+"""
+Implementação do modelo LSTM para classificação de sinais EMG.
+
+Este módulo contém a implementação do modelo LSTM (Long Short-Term Memory)
+para classificação de gestos a partir de sinais EMG.
+"""
+
+import numpy as np
+import os
+import logging
+import tensorflow as tf
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.utils import to_categorical
+
+logger = logging.getLogger(__name__)
+
+class LSTMModel:
+    """
+    Classe para implementação do modelo LSTM para classificação de sinais EMG.
+    """
+    
+    def __init__(self, input_shape=(200, 1), num_classes=5, lstm_units=(64, 32), 
+                 bidirectional=True, dense_units=64, dropout_rate=0.3):
+        """
+        Inicializa o modelo LSTM.
+        
+        Args:
+            input_shape (tuple, optional): Forma dos dados de entrada (timesteps, features). Padrão é (200, 1).
+            num_classes (int, optional): Número de classes. Padrão é 5.
+            lstm_units (tuple, optional): Número de unidades em cada camada LSTM. Padrão é (64, 32).
+            bidirectional (bool, optional): Se True, usa LSTM bidirecional. Padrão é True.
+            dense_units (int, optional): Número de unidades na camada densa. Padrão é 64.
+            dropout_rate (float, optional): Taxa de dropout. Padrão é 0.3.
+        """
+        self.input_shape = input_shape
+        self.num_classes = num_classes
+        self.lstm_units = lstm_units
+        self.bidirectional = bidirectional
+        self.dense_units = dense_units
+        self.dropout_rate = dropout_rate
+        
+        self.model = None
+        self.history = None
+        self.classes = None
+        self.is_trained = False
+        
+        # Cria o modelo
+        self._build_model()
+    
+    def _build_model(self):
+        """
+        Constrói a arquitetura do modelo LSTM.
+        """
+        self.model = Sequential()
+        
+        # Primeira camada LSTM
+        if self.bidirectional:
+            self.model.add(Bidirectional(LSTM(self.lstm_units[0], return_sequences=True), 
+                                        input_shape=self.input_shape))
+        else:
+            self.model.add(LSTM(self.lstm_units[0], return_sequences=True, 
+                               input_shape=self.input_shape))
+        
+        self.model.add(Dropout(self.dropout_rate))
+        
+        # Segunda camada LSTM
+        if self.bidirectional:
+            self.model.add(Bidirectional(LSTM(self.lstm_units[1])))
+        else:
+            self.model.add(LSTM(self.lstm_units[1]))
+        
+        self.model.add(Dropout(self.dropout_rate))
+        
+        # Camada densa
+        self.model.add(Dense(self.dense_units, activation='relu'))
+        self.model.add(Dropout(self.dropout_rate))
+        
+        # Camada de saída
+        self.model.add(Dense(self.num_classes, activation='softmax'))
+        
+        # Compila o modelo
+        self.model.compile(loss='categorical_crossentropy',
+                          optimizer='adam',
+                          metrics=['accuracy'])
+        
+        logger.info("Modelo LSTM construído")
+    
+    def train(self, X, y, validation_split=0.2, batch_size=32, epochs=50, patience=10):
+        """
+        Treina o modelo LSTM.
+        
+        Args:
+            X (numpy.ndarray): Matriz de características de treinamento.
+            y (numpy.ndarray): Vetor de classes de treinamento.
+            validation_split (float, optional): Fração dos dados para validação. Padrão é 0.2.
+            batch_size (int, optional): Tamanho do batch. Padrão é 32.
+            epochs (int, optional): Número máximo de épocas. Padrão é 50.
+            patience (int, optional): Paciência para early stopping. Padrão é 10.
+        
+        Returns:
+            dict: Histórico de treinamento.
+        """
+        logger.info(f"Treinando modelo LSTM com {X.shape[0]} amostras...")
+        
+        # Armazena as classes
+        self.classes = np.unique(y)
+        self.num_classes = len(self.classes)
+        
+        # Converte as classes para one-hot encoding
+        y_categorical = to_categorical(y, num_classes=self.num_classes)
+        
+        # Reshape X para o formato esperado pelo LSTM (amostras, timesteps, features)
+        if len(X.shape) == 2:
+            X_reshaped = X.reshape(X.shape[0], X.shape[1], 1)
+        else:
+            X_reshaped = X
+        
+        # Callbacks
+        callbacks = [
+            EarlyStopping(monitor='val_loss', patience=patience, restore_best_weights=True),
+            ModelCheckpoint('temp_lstm_model.h5', monitor='val_loss', save_best_only=True)
+        ]
+        
+        # Treina o modelo
+        self.history = self.model.fit(
+            X_reshaped, y_categorical,
+            validation_split=validation_split,
+            batch_size=batch_size,
+            epochs=epochs,
+            callbacks=callbacks,
+            verbose=1
+        )
+        
+        self.is_trained = True
+        
+        # Avalia o modelo no conjunto de treinamento
+        _, accuracy = self.model.evaluate(X_reshaped, y_categorical, verbose=0)
+        logger.info(f"Modelo LSTM treinado com acurácia de {accuracy:.4f}")
+        
+        # Remove o arquivo temporário
+        if os.path.exists('temp_lstm_model.h5'):
+            os.remove('temp_lstm_model.h5')
+        
+        return self.history.history
+    
+    def predict(self, X):
+        """
+        Realiza predição com o modelo LSTM.
+        
+        Args:
+            X (numpy.ndarray): Matriz de características para predição.
+        
+        Returns:
+            numpy.ndarray: Vetor de classes preditas.
+        """
+        if not self.is_trained:
+            logger.error("Modelo LSTM não foi treinado")
+            return None
+        
+        # Reshape X para o formato esperado pelo LSTM (amostras, timesteps, features)
+        if len(X.shape) == 2:
+            X_reshaped = X.reshape(X.shape[0], X.shape[1], 1)
+        else:
+            X_reshaped = X
+        
+        # Realiza a predição
+        y_pred_proba = self.model.predict(X_reshaped)
+        y_pred = np.argmax(y_pred_proba, axis=1)
+        
+        return y_pred
+    
+    def predict_proba(self, X):
+        """
+        Realiza predição com probabilidades.
+        
+        Args:
+            X (numpy.ndarray): Matriz de características para predição.
+        
+        Returns:
+            numpy.ndarray: Matriz de probabilidades para cada classe.
+        """
+        if not self.is_trained:
+            logger.error("Modelo LSTM não foi treinado")
+            return None
+        
+        # Reshape X para o formato esperado pelo LSTM (amostras, timesteps, features)
+        if len(X.shape) == 2:
+            X_reshaped = X.reshape(X.shape[0], X.shape[1], 1)
+        else:
+            X_reshaped = X
+        
+        return self.model.predict(X_reshaped)
+    
+    def save(self, file_path):
+        """
+        Salva o modelo em um arquivo.
+        
+        Args:
+            file_path (str): Caminho para o arquivo.
+        
+        Returns:
+            bool: True se o modelo foi salvo com sucesso, False caso contrário.
+        """
+        if not self.is_trained:
+            logger.error("Modelo LSTM não foi treinado")
+            return False
+        
+        try:
+            # Salva o modelo Keras
+            self.model.save(file_path)
+            
+            # Salva metadados adicionais
+            metadata_path = file_path + '.metadata'
+            np.savez(metadata_path, 
+                    classes=self.classes,
+                    input_shape=self.input_shape,
+                    lstm_units=self.lstm_units,
+                    bidirectional=self.bidirectional,
+                    dense_units=self.dense_units,
+                    dropout_rate=self.dropout_rate)
+            
+            logger.info(f"Modelo LSTM salvo em {file_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao salvar modelo LSTM: {str(e)}")
+            return False
+    
+    def load(self, file_path):
+        """
+        Carrega o modelo de um arquivo.
+        
+        Args:
+            file_path (str): Caminho para o arquivo.
+        
+        Returns:
+            bool: True se o modelo foi carregado com sucesso, False caso contrário.
+        """
+        try:
+            # Carrega o modelo Keras
+            self.model = load_model(file_path)
+            
+            # Carrega metadados adicionais
+            metadata_path = file_path + '.metadata'
+            if os.path.exists(metadata_path):
+                metadata = np.load(metadata_path, allow_pickle=True)
+                self.classes = metadata['classes']
+                self.input_shape = tuple(metadata['input_shape'])
+                self.lstm_units = tuple(metadata['lstm_units'])
+                self.bidirectional = bool(metadata['bidirectional'])
+                self.dense_units = int(metadata['dense_units'])
+                self.dropout_rate = float(metadata['dropout_rate'])
+            else:
+                logger.warning(f"Arquivo de metadados não encontrado: {metadata_path}")
+                # Infere o número de classes a partir da camada de saída
+                self.num_classes = self.model.layers[-1].output_shape[-1]
+                self.classes = np.arange(self.num_classes)
+            
+            self.is_trained = True
+            logger.info(f"Modelo LSTM carregado de {file_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao carregar modelo LSTM: {str(e)}")
+            return False
+    
+    def get_params(self):
+        """
+        Obtém os parâmetros do modelo.
+        
+        Returns:
+            dict: Dicionário com os parâmetros do modelo.
+        """
+        return {
+            'input_shape': self.input_shape,
+            'num_classes': self.num_classes,
+            'lstm_units': self.lstm_units,
+            'bidirectional': self.bidirectional,
+            'dense_units': self.dense_units,
+            'dropout_rate': self.dropout_rate,
+            'classes': self.classes.tolist() if self.classes is not None else None,
+            'is_trained': self.is_trained
+        }
